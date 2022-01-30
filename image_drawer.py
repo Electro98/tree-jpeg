@@ -11,6 +11,7 @@ class WinImage(object):
         pygame.init()
         self.tree = tree
         self.ratio = (display[0] - tree.bounds.end.x + 1) / tree.bounds.end.x
+        self.grid_color = (177, 177, 177)
         self.screen = pygame.display.set_mode(display)
         self.clock = pygame.time.Clock()
 
@@ -25,10 +26,27 @@ class WinImage(object):
             if node.is_divided():
                 center_x = (node.bounds.start.x + node.bounds.end.x) * (self.ratio + 1) / 2 - 1
                 center_y = (node.bounds.start.y + node.bounds.end.y) * (self.ratio + 1) / 2 - 1
-                pygame.draw.line(self.screen, (255, 255, 255),  (center_x, node.bounds.start.y * self.ratio), (center_x, node.bounds.end.x * self.ratio))
-                pygame.draw.line(self.screen, (255, 255, 255),  (node.bounds.start.x * self.ratio, center_y), (node.bounds.end.x * self.ratio, center_y))
+                pygame.draw.line(
+                    self.screen,
+                    self.grid_color,
+                    (center_x, node.bounds.start.y * self.ratio),
+                    (center_x, node.bounds.end.x * (self.ratio + 1) - 1),
+                )
+                pygame.draw.line(
+                    self.screen,
+                    self.grid_color,
+                    (node.bounds.start.x * self.ratio, center_y),
+                    (node.bounds.end.x * (self.ratio + 1) - 1, center_y),
+                )
             elif not node.is_empty():
-                pygame.draw.rect(self.screen, (255, 255, 255), pygame.Rect((node.pixel.x * (self.ratio + 1), node.pixel.y * (self.ratio + 1)), (self.ratio, self.ratio)))
+                pygame.draw.rect(
+                    self.screen,
+                    node.pixel.get_color(),
+                    pygame.Rect(
+                        (node.pixel.x * (self.ratio + 1), node.pixel.y * (self.ratio + 1)),
+                        (self.ratio, self.ratio),
+                    ),
+                )
         pygame.display.update()
 
     def exec(self):

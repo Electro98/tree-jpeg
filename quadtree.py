@@ -29,6 +29,9 @@ class Pixel(Point):
         return isinstance(pixel, Point) and \
             self.x == pixel.x and self.y == pixel.y
 
+    def get_color(self):
+        return 255, 255, 255
+
 
 class Area:
     """docstring for Area"""
