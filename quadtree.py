@@ -2,6 +2,9 @@
 from typing import Tuple, Union
 
 
+Color = Tuple[int, int, int]
+
+
 class Point:
     """docstring for Point"""
     __slots__ = 'x', 'y'
@@ -20,98 +23,93 @@ class Point:
 
 class Pixel(Point):
     """docstring for Pixel"""
-    __slots__ = 'x', 'y'
+    __slots__ = 'x', 'y', 'color'
 
-    def __init__(self, x, y):
+    def __init__(self, x: int, y: int, color: Color):
         super(Pixel, self).__init__(x, y)
+        self.color = color
 
     def __eq__(self, pixel):
         return isinstance(pixel, Point) and \
-            self.x == pixel.x and self.y == pixel.y
+            self.x == pixel.x and self.y == pixel.y and \
+            self.color == pixel.color
 
     def get_color(self):
-        return 255, 255, 255
+        return self.color
 
 
 class Area:
     """docstring for Area"""
-    __slots__ = 'start', 'end'
+    __slots__ = 'start', 'end', 'color'
     point_data = Union[Point, Tuple[int, int]]
 
-    def __init__(self, start: point_data, end: point_data):
-        self.start = start if isinstance(start, Point) else Pixel(*start)
-        self.end = end if isinstance(end, Point) else Pixel(*end)
+    def __init__(self, start: point_data, end: point_data, color: Color):
+        self.start = start if isinstance(start, Point) else Point(*start)
+        self.end = end if isinstance(end, Point) else Point(*end)
+        self.color = color
 
     def __contains__(self, point: Point):
         return self.start.x <= point.x < self.end.x and \
             self.start.y <= point.y < self.end.y
 
+    def is_pixel(self):
+        return (self.end.x - self.start.x) * (self.end.y - self.start.y) == 1
+
     def __str__(self):
-        return f'Area: {self.start}, {self.end}'
+        return f'Area: {self.start}, {self.end}, {self.color}'
 
 
 class Quadtree:
     """docstring for Quadtree"""
-    __slots__ = 'bounds', 'pixel', \
-                'north_west', 'north_east', \
-                'sourth_west', 'sourth_east'
+    __slots__ = (
+        'area',
+        'north_west', 'north_east',
+        'sourth_west', 'sourth_east'
+    )
 
-    def __init__(self, bounds, pixel=None):
-        self.bounds = bounds
-        self.pixel = None
+    def __init__(self, area):
+        self.area = area
         self.clear_childs()
 
     def _subdivide(self) -> None:
-        north_west_end = (self.bounds.start.x + self.bounds.end.x) // 2, \
-                         (self.bounds.start.y + self.bounds.end.y) // 2
-        self.north_west = Quadtree(Area(self.bounds.start, north_west_end))
+        north_west_end = (self.area.start.x + self.area.end.x) // 2, \
+                         (self.area.start.y + self.area.end.y) // 2
+        self.north_west = Quadtree(
+            Area(self.area.start, north_west_end, self.area.color)
+        )
         sourth_east_start = north_west_end[0], north_west_end[1]
-        self.sourth_east = Quadtree(Area(sourth_east_start, self.bounds.end))
-        north_east_start = north_west_end[0], self.bounds.start.y
-        north_east_end = self.bounds.end.x, north_west_end[1]
-        self.north_east = Quadtree(Area(north_east_start, north_east_end))
-        sourth_west_start = self.bounds.start.x, north_west_end[1]
-        sourth_west_end = north_west_end[0], self.bounds.end.y
-        self.sourth_west = Quadtree(Area(sourth_west_start, sourth_west_end))
+        self.sourth_east = Quadtree(
+            Area(sourth_east_start, self.area.end, self.area.color)
+        )
+        north_east_start = north_west_end[0], self.area.start.y
+        north_east_end = self.area.end.x, north_west_end[1]
+        self.north_east = Quadtree(
+            Area(north_east_start, north_east_end, self.area.color)
+        )
+        sourth_west_start = self.area.start.x, north_west_end[1]
+        sourth_west_end = north_west_end[0], self.area.end.y
+        self.sourth_west = Quadtree(
+            Area(sourth_west_start, sourth_west_end, self.area.color)
+        )
 
     def is_divided(self) -> bool:
         return bool(self.north_west)
 
     def insert(self, pixel: Pixel) -> bool:
-        if pixel not in self.bounds:
+        if pixel not in self.area:
             return False
-        if not self.is_divided() and not self.pixel:
-            self.pixel = pixel
+        if not self.is_divided() and pixel.color == self.area.color:
+            return True
+        if self.area.is_pixel():
+            self.area.color = pixel.color
             return True
         if not self.is_divided():
             self._subdivide()
         # Simplest solution, just trying to insert our pixel to one child
-        if self.pixel:
-            self.north_west.insert(self.pixel) or \
-                self.north_east.insert(self.pixel) or \
-                self.sourth_east.insert(self.pixel) or \
-                self.sourth_west.insert(self.pixel)
-            self.pixel = None
         return self.north_west.insert(pixel) or \
             self.north_east.insert(pixel) or \
             self.sourth_east.insert(pixel) or \
             self.sourth_west.insert(pixel)
-
-    def delete(self, pixel: Pixel) -> bool:
-        if pixel not in self.bounds:
-            return False
-        if not self.is_divided() and self.pixel == pixel:
-            self.pixel = None
-            return True
-        elif self.is_divided():
-            return self.north_west.delete(pixel) or \
-                self.north_east.delete(pixel) or \
-                self.sourth_east.delete(pixel) or \
-                self.sourth_west.delete(pixel)
-        return False
-
-    def is_empty(self) -> bool:
-        return not self.is_divided() and not self.pixel
 
     def collapse(self) -> None:
         if not self.is_divided():
@@ -120,16 +118,40 @@ class Quadtree:
         self.north_east.collapse()
         self.sourth_east.collapse()
         self.sourth_west.collapse()
-        child_count = not self.north_west.is_empty()
-        child_count += not self.north_east.is_empty()
-        child_count += not self.sourth_east.is_empty()
-        child_count += not self.sourth_west.is_empty()
-        if child_count <= 1:
-            self.pixel = self.north_west.pixel or \
-                self.north_east.pixel or \
-                self.sourth_east.pixel or \
-                self.sourth_west.pixel
+        if max(self.north_west.is_divided(),
+               self.north_east.is_divided(),
+               self.sourth_east.is_divided(),
+               self.sourth_west.is_divided()):
+            return
+        color = self.north_west.area.color
+        if self.north_east.area.color == color and \
+           self.sourth_east.area.color == color and \
+           self.sourth_west.area.color == color:
+            self.area.color = color
             self.clear_childs()
+
+    def unite(self, unite_childs=False):
+        if not self.is_divided():
+            return
+        if max(self.north_west.is_divided(),
+               self.north_east.is_divided(),
+               self.sourth_east.is_divided(),
+               self.sourth_west.is_divided()):
+            if not unite_childs:
+                print('nope.')
+                return
+            self.north_west.unite(unite_childs)
+            self.north_east.unite(unite_childs)
+            self.sourth_east.unite(unite_childs)
+            self.sourth_west.unite(unite_childs)
+        self.area.color = tuple(
+            map(lambda x: sum(x) // len(x),
+                zip(self.north_west.area.color,
+                    self.north_east.area.color,
+                    self.sourth_east.area.color,
+                    self.sourth_west.area.color))
+        )
+        self.clear_childs()
 
     def clear_childs(self) -> None:
         self.north_west = None
@@ -144,19 +166,6 @@ class Quadtree:
                        self.north_east.depth(),
                        self.sourth_east.depth(),
                        self.sourth_west.depth())
-
-    def pixels(self):
-        if self.pixel:
-            yield self.pixel
-        elif self.is_divided():
-            for pixel in self.north_west.pixels():
-                yield pixel
-            for pixel in self.north_east.pixels():
-                yield pixel
-            for pixel in self.sourth_east.pixels():
-                yield pixel
-            for pixel in self.sourth_west.pixels():
-                yield pixel
 
     def __iter__(self):
         # iteration through all nodes
@@ -176,20 +185,15 @@ class Quadtree:
 
 
 if __name__ == '__main__':
-    tree = Quadtree(Area((0, 0), (15, 15)))
-    tree.insert(Pixel(0, 0))
-    tree.insert(Pixel(0, 7))
-    tree.insert(Pixel(8, 8))
+    tree = Quadtree(Area((0, 0), (15, 15), (0, 0, 0)))
+    tree.insert(Pixel(0, 0, (255, 255, 255)))
+    tree.insert(Pixel(0, 7, (255, 255, 255)))
+    tree.insert(Pixel(8, 8, (255, 255, 255)))
     print('-' * 10)
     print(f'Tree depth: {tree.depth()}')
-    for pixel in tree.pixels():
-        print(pixel)
     print('-' * 10)
-    tree.delete(Pixel(0, 7))
     tree.collapse()
     print(f'Tree depth: {tree.depth()}')
-    for pixel in tree.pixels():
-        print(pixel)
     print('-' * 10)
     for i in tree:
         print(f'I\'m {i}, my depth: {i.depth()}')
