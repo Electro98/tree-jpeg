@@ -1,9 +1,7 @@
 
 import pygame
 
-from PIL import Image
-
-from .quadtree import Quadtree, Area, Pixel
+from .quadtree import Quadtree
 
 
 class WinImage(object):
@@ -13,7 +11,8 @@ class WinImage(object):
         pygame.init()
         self.tree = tree
         self.ratio = (display[0] - tree.area.end.x + 1) / tree.area.end.x
-        self.grid_color = (177, 177, 177)
+        self.grid_color = (255, 255, 255)
+        self.background = self.grid_color
         self.screen = pygame.display.set_mode(display)
         self.clock = pygame.time.Clock()
 
@@ -32,12 +31,11 @@ class WinImage(object):
                     exit(0)
 
     def update(self):
-        self.screen.fill((0, 0, 0))
+        self.screen.fill(self.background)
         for node in self.tree:
             if node.is_divided():
                 center_x = (node.area.start.x + node.area.end.x) * (self.ratio + 1) / 2 - 1
                 center_y = (node.area.start.y + node.area.end.y) * (self.ratio + 1) / 2 - 1
-                pygame.draw.circle(self.screen, (255, 0, 0), (center_x, center_y), 2, 3)
                 pygame.draw.line(
                     self.screen,
                     self.grid_color,
@@ -83,22 +81,3 @@ class WinImage(object):
 def draw(tree: Quadtree):
     app = WinImage(tree)
     app.exec()
-
-
-def main():
-    with Image.open("practice_21\\images\\test2.jpeg") as input_img:
-        # TODO: shrinking to 2^x size square
-        size = height, width = 512, 512
-        shrinked_img = input_img.resize(size, Image.ANTIALIAS)
-        pixel_data = shrinked_img.getdata()
-        tree = Quadtree(Area((0, 0), size, (0, 0, 0)))
-        for j in range(height):
-            for i in range(width):
-                color = pixel_data[j * width + i]
-                tree.insert(Pixel(i, j, color))
-    tree.collapse()
-    draw(tree)
-
-
-if __name__ == '__main__':
-    main()

@@ -18,3 +18,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+
+# Sublime project
+*.sublime-project
+*.sublime-workspace
