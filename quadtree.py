@@ -1,8 +1,8 @@
 
-from typing import Tuple, Union
+from typing import Union
 
 
-Color = Tuple[int, int, int]
+Color = tuple[int, int, int]
 
 
 class Point:
@@ -44,9 +44,14 @@ class Area:
     """docstring for Area."""
 
     __slots__ = 'start', 'end', 'color'
-    point_data = Union[Point, Tuple[int, int]]
+    point_data = Union[Point, tuple[int, int]]
 
-    def __init__(self, start: point_data, end: point_data, color: Color):
+    def __init__(
+        self,
+        start: point_data,
+        end: point_data,
+        color: Color = (0, 0, 0),
+    ):
         """Create rectangle area from start to end."""
         self.start = start if isinstance(start, Point) else Point(*start)
         self.end = end if isinstance(end, Point) else Point(*end)
@@ -133,10 +138,7 @@ class Quadtree:
         self.north_east.collapse()
         self.sourth_east.collapse()
         self.sourth_west.collapse()
-        if max(self.north_west.is_divided(),
-               self.north_east.is_divided(),
-               self.sourth_east.is_divided(),
-               self.sourth_west.is_divided()):
+        if max(child.is_divided() for child in self.childs()):
             return
         color = self.north_west.area.color
         if self.north_east.area.color == color and \
@@ -149,10 +151,7 @@ class Quadtree:
         """Forse tree to unite its child."""
         if not self.is_divided():
             return
-        if max(self.north_west.is_divided(),
-               self.north_east.is_divided(),
-               self.sourth_east.is_divided(),
-               self.sourth_west.is_divided()):
+        if max(child.is_divided() for child in self.childs()):
             if not unite_childs:
                 print('nope.')
                 return
@@ -161,11 +160,10 @@ class Quadtree:
             self.sourth_east.unite(unite_childs)
             self.sourth_west.unite(unite_childs)
         self.area.color = tuple(
-            map(lambda x: sum(x) // len(x),
-                zip(self.north_west.area.color,
-                    self.north_east.area.color,
-                    self.sourth_east.area.color,
-                    self.sourth_west.area.color))
+            map(
+                lambda x: sum(x) // len(x),
+                zip(child.area.color for child in self.childs()),
+            ),
         )
         self.clear_childs()
 
@@ -176,13 +174,17 @@ class Quadtree:
         self.sourth_east = None
         self.sourth_west = None
 
+    def childs(self):
+        """Yield own childs"""
+        yield self.north_west
+        yield self.north_east
+        yield self.sourth_east
+        yield self.sourth_west
+
     def depth(self) -> int:
         if not self.is_divided():
             return 1
-        return 1 + max(self.north_west.depth(),
-                       self.north_east.depth(),
-                       self.sourth_east.depth(),
-                       self.sourth_west.depth())
+        return 1 + max(child.depth() for child in self.childs())
 
     def __iter__(self):
         """Return iterator through all nodes.
@@ -192,14 +194,8 @@ class Quadtree:
         """
         yield self
         if self.is_divided():
-            for node in self.north_west:
-                yield node
-            for node in self.north_east:
-                yield node
-            for node in self.sourth_east:
-                yield node
-            for node in self.sourth_west:
-                yield node
+            for child in self.childs():
+                yield from child
 
 
 if __name__ == '__main__':
