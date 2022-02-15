@@ -1,3 +1,4 @@
+"""Unnecessary module for GUI."""
 
 import pygame
 
@@ -5,7 +6,7 @@ from .quadtree import Quadtree
 
 
 class WinImage(object):
-    """docstring for WinImage"""
+    """Main pygame window."""
 
     def __init__(self, tree: Quadtree, display=(1080, 1080)):
         pygame.init()
@@ -25,7 +26,10 @@ class WinImage(object):
                 if event.key == pygame.K_DOWN:
                     self.jpeg_image()
                 elif event.key == pygame.K_s:
-                    pygame.image.save(self.screen, f"tree_{self.tree.depth()}.jpg")
+                    pygame.image.save(
+                        self.screen,
+                        f"tree_{self.tree.depth()}.jpg",
+                    )
                 elif event.key == pygame.K_e:
                     pygame.quit()
                     exit(0)

@@ -1,3 +1,4 @@
+"""Module that provides CLI to user."""
 
 from PIL import Image
 
