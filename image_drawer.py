@@ -2,7 +2,7 @@
 
 import pygame
 
-from .quadtree import Quadtree
+from .quadtree import Pixel, Quadtree
 
 
 class WinImage(object):
@@ -33,6 +33,11 @@ class WinImage(object):
                 elif event.key == pygame.K_e:
                     pygame.quit()
                     exit(0)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    coordinates = pygame.mouse.get_pos()
+                    self.tree.insert(Pixel(*coordinates, (0, 0, 0)))
+                    self.update()
 
     def update(self):
         self.screen.fill(self.background)
@@ -82,6 +87,10 @@ class WinImage(object):
             # self.update()
 
 
-def draw(tree: Quadtree):
-    app = WinImage(tree)
+def draw(tree: Quadtree, up_to_depth: bool):
+    if up_to_depth:
+        size = round(tree.area.end.x + tree.depth()) * 2 + 1
+        app = WinImage(tree, (size, size))
+    else:
+        app = WinImage(tree)
     app.exec()

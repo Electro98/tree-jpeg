@@ -21,6 +21,10 @@ class Point:
     def __str__(self):
         return f'Point: {self.x}, {self.y}'
 
+    def __iter__(self):
+        yield self.x
+        yield self.y
+
 
 class Pixel(Point):
     """docstring for Pixel"""
@@ -28,7 +32,7 @@ class Pixel(Point):
     __slots__ = 'x', 'y', 'color'
 
     def __init__(self, x: int, y: int, color: Color):
-        super(Pixel, self).__init__(x, y)
+        super().__init__(x, y)
         self.color = color
 
     def __eq__(self, pixel):
@@ -85,7 +89,7 @@ class Quadtree:
         self.area = area
         self.clear_childs()
 
-    def _subdivide(self) -> None:
+    def subdivide(self) -> None:
         north_west_end = (self.area.start.x + self.area.end.x) // 2, \
                          (self.area.start.y + self.area.end.y) // 2
         self.north_west = Quadtree(
@@ -120,7 +124,7 @@ class Quadtree:
             self.area.color = pixel.color
             return True
         if not self.is_divided():
-            self._subdivide()
+            self.subdivide()
         # Simplest solution, just trying to insert our pixel to one child
         return self.north_west.insert(pixel) or \
             self.north_east.insert(pixel) or \
@@ -159,10 +163,11 @@ class Quadtree:
             self.north_east.unite(unite_childs)
             self.sourth_east.unite(unite_childs)
             self.sourth_west.unite(unite_childs)
+
         self.area.color = tuple(
             map(
                 lambda x: sum(x) // len(x),
-                zip(child.area.color for child in self.childs()),
+                zip(*tuple(child.area.color for child in self.childs())),
             ),
         )
         self.clear_childs()
@@ -176,6 +181,8 @@ class Quadtree:
 
     def childs(self):
         """Yield own childs"""
+        if not self.is_divided():
+            return "no childs."
         yield self.north_west
         yield self.north_east
         yield self.sourth_east
@@ -193,9 +200,8 @@ class Quadtree:
         than returns second child ... and to third one.
         """
         yield self
-        if self.is_divided():
-            for child in self.childs():
-                yield from child
+        for child in self.childs():
+            yield from child
 
 
 if __name__ == '__main__':
@@ -207,8 +213,9 @@ if __name__ == '__main__':
     print(f'Tree depth: {tree.depth()}')
     print('-' * 10)
     tree.collapse()
-    print(f'Tree depth: {tree.depth()}')
+    tree_depth = tree.depth()
+    print(f'Tree depth: {tree_depth}')
     print('-' * 10)
     for i in tree:
-        print(f'I\'m {i}, my depth: {i.depth()}')
+        print(f"{' ' * (tree_depth - i.depth())}I\'m {i}, my depth: {i.depth()}")
     print('-' * 10)
