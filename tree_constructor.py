@@ -74,6 +74,7 @@ class TreeConstractor:
         for node in tree:
             x0, y0 = node.area.start
             x1, y1 = node.area.end
+            print(x0, x1, y0, y1, sep=", ")
             image_part = image[y0:y1, x0:x1]
             if self.is_consistent_color(image_part):
                 node.area.color = self.average_color(image_part)
