@@ -1,10 +1,12 @@
 """Cool."""
 import numpy as np
+from numba import njit
 from PIL import Image
 
 from math import log2, sqrt
 
-from .quadtree import Quadtree, Area, Color
+from .timer import timeit
+from .quadtree import Quadtree, Color
 
 
 def close_size(cord_x: int, cord_y: int):
@@ -12,6 +14,7 @@ def close_size(cord_x: int, cord_y: int):
     return 2 ** round(log2(max(cord_x, cord_y)) + 0.49)
 
 
+@njit
 def color_diff(first: Color, second: Color) -> float:
     """Compute color difference."""
     r0, g0, b0 = first
@@ -28,7 +31,9 @@ def color_diff(first: Color, second: Color) -> float:
 
 class TreeConstractor:
     """Class, that creates quadtrees from images."""
+
     def __init__(self, color_difference):
+        """Save JNCD variable."""
         # Just Noticeable Color Difference
         self.color_difference = color_difference
 
@@ -67,14 +72,14 @@ class TreeConstractor:
             color_diff(average_color, max_color) <= self.color_difference,
         ))
 
+    @timeit
     def create_tree(self, image_path: str) -> Quadtree:
         """Load image from given path and return compressed quadtree."""
         image = self.parse_image(image_path)
-        tree = Quadtree(Area((0, 0), (image.shape[0], image.shape[0])))
+        tree = Quadtree((image.shape[0], image.shape[0]))
         for node in tree:
             x0, y0 = node.area.start
             x1, y1 = node.area.end
-            print(x0, x1, y0, y1, sep=", ")
             image_part = image[y0:y1, x0:x1]
             if self.is_consistent_color(image_part):
                 node.area.color = self.average_color(image_part)

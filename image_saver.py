@@ -2,10 +2,11 @@
 import numpy as np
 
 from .quadtree import Quadtree
-from PIL import Image, ImageDraw
+from PIL import Image
 
 
 def to_max_depth(tree: Quadtree, max_depth: int):
+    """Compress tree until max_depth is reached."""
     if tree.depth() <= max_depth:
         return tree
     diff_depth = tree.depth() - max_depth + 1
@@ -16,6 +17,7 @@ def to_max_depth(tree: Quadtree, max_depth: int):
 
 
 def tree_to_clear_matrix(tree: Quadtree) -> np.ndarray:
+    """Create image from tree."""
     size = tree.area.end
     result = np.ndarray((*size, 3), dtype=np.uint8)
     for node in tree:
@@ -26,7 +28,9 @@ def tree_to_clear_matrix(tree: Quadtree) -> np.ndarray:
         result[y0:y1, x0:x1] = node.area.color
     return result
 
+
 def tree_to_dirty_matrix(tree: Quadtree) -> np.ndarray:
+    """Create image with borders from tree."""
     size = tree.area.end.x * 2 - 1
     result = np.ndarray((size, size, 3), dtype=np.uint8)
     for node in tree:
@@ -41,6 +45,7 @@ def tree_to_dirty_matrix(tree: Quadtree) -> np.ndarray:
 
 
 def tree_to_strange_matrix(tree: Quadtree) -> np.ndarray:
+    """Create strange image from tree."""
     size = tree.area.end.x * 2 - 1
     result = np.ndarray((size, size, 3), dtype=np.uint8)
     for node in tree:

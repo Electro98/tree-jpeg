@@ -1,5 +1,9 @@
 """Unnecessary module for GUI."""
 
+# Bad things, but who care
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+
 import pygame
 
 from .quadtree import Pixel, Quadtree

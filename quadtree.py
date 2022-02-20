@@ -1,59 +1,41 @@
-
-from typing import Union
-
+"""Module for Quadtree and supports classes."""
+from dataclasses import dataclass
+from typing import Optional, Union
 
 Color = tuple[int, int, int]
+PointData = Union["Point", tuple[int, int]]
 
 
+@dataclass(slots=True)
 class Point:
-    """docstring for Point"""
+    """Class representation of point in xy coordinates."""
 
-    __slots__ = 'x', 'y'
-
-    def __init__(self, x: int, y: int):
-        self.x = x
-        self.y = y
-
-    def __eq__(self, point):
-        return isinstance(point, Point) and \
-            self.x == point.x and self.y == point.y
-
-    def __str__(self):
-        return f'Point: {self.x}, {self.y}'
+    x: int
+    y: int
 
     def __iter__(self):
-        yield self.x
-        yield self.y
+        """Return tuple of x and y."""
+        return iter((self.x, self.y))
 
 
+@dataclass(slots=True)
 class Pixel(Point):
-    """docstring for Pixel"""
+    """Class representation of point with color."""
 
-    __slots__ = 'x', 'y', 'color'
-
-    def __init__(self, x: int, y: int, color: Color):
-        super().__init__(x, y)
-        self.color = color
-
-    def __eq__(self, pixel):
-        return isinstance(pixel, Point) and \
-            self.x == pixel.x and self.y == pixel.y and \
-            self.color == pixel.color
-
-    def get_color(self):
-        return self.color
+    x: int
+    y: int
+    color: Color
 
 
-class Area:
-    """docstring for Area."""
+class ColorArea:
+    """2-dimensional area with color."""
 
     __slots__ = 'start', 'end', 'color'
-    point_data = Union[Point, tuple[int, int]]
 
     def __init__(
         self,
-        start: point_data,
-        end: point_data,
+        start: PointData,
+        end: PointData,
         color: Color = (0, 0, 0),
     ):
         """Create rectangle area from start to end."""
@@ -71,43 +53,46 @@ class Area:
         return (self.end.x - self.start.x) * (self.end.y - self.start.y) == 1
 
     def __str__(self):
-        """Provides readable str for Area."""
+        """Provide readable str for Area."""
         return f'Area: {self.start}, {self.end}, {self.color}'
 
 
+@dataclass(slots=True)
 class Quadtree:
-    """docstring for Quadtree."""
+    """Simple Quadtree."""
 
-    __slots__ = (
-        'area',
-        'north_west', 'north_east',
-        'sourth_west', 'sourth_east',
-    )
+    area: Union[ColorArea, tuple[int, int]]
+    north_west: Optional["Quadtree"] = None
+    north_east: Optional["Quadtree"] = None
+    sourth_east: Optional["Quadtree"] = None
+    sourth_west: Optional["Quadtree"] = None
 
-    def __init__(self, area):
-        """Create tree without childs."""
-        self.area = area
-        self.clear_childs()
+    def __post_init__(self) -> None:
+        """Trasform point from init into ColorArea."""
+        if isinstance(self.area, ColorArea):
+            return
+        self.area = ColorArea((0, 0), self.area)
 
     def subdivide(self) -> None:
+        """Divide quadtree and set childs to it."""
         north_west_end = (self.area.start.x + self.area.end.x) // 2, \
                          (self.area.start.y + self.area.end.y) // 2
         self.north_west = Quadtree(
-            Area(self.area.start, north_west_end, self.area.color)
+            ColorArea(self.area.start, north_west_end, self.area.color),
         )
         sourth_east_start = north_west_end[0], north_west_end[1]
         self.sourth_east = Quadtree(
-            Area(sourth_east_start, self.area.end, self.area.color)
+            ColorArea(sourth_east_start, self.area.end, self.area.color),
         )
         north_east_start = north_west_end[0], self.area.start.y
         north_east_end = self.area.end.x, north_west_end[1]
         self.north_east = Quadtree(
-            Area(north_east_start, north_east_end, self.area.color)
+            ColorArea(north_east_start, north_east_end, self.area.color),
         )
         sourth_west_start = self.area.start.x, north_west_end[1]
         sourth_west_end = north_west_end[0], self.area.end.y
         self.sourth_west = Quadtree(
-            Area(sourth_west_start, sourth_west_end, self.area.color)
+            ColorArea(sourth_west_start, sourth_west_end, self.area.color),
         )
 
     def is_divided(self) -> bool:
@@ -126,10 +111,12 @@ class Quadtree:
         if not self.is_divided():
             self.subdivide()
         # Simplest solution, just trying to insert our pixel to one child
-        return self.north_west.insert(pixel) or \
-            self.north_east.insert(pixel) or \
-            self.sourth_east.insert(pixel) or \
-            self.sourth_west.insert(pixel)
+        return any((
+            self.north_west.insert(pixel),
+            self.north_east.insert(pixel),
+            self.sourth_east.insert(pixel),
+            self.sourth_west.insert(pixel),
+        ))
 
     def collapse(self) -> None:
         """Collapse if possible.
@@ -145,9 +132,11 @@ class Quadtree:
         if max(child.is_divided() for child in self.childs()):
             return
         color = self.north_west.area.color
-        if self.north_east.area.color == color and \
-           self.sourth_east.area.color == color and \
-           self.sourth_west.area.color == color:
+        if all((
+            self.north_east.area.color == color,
+            self.sourth_east.area.color == color,
+            self.sourth_west.area.color == color,
+        )):
             self.area.color = color
             self.clear_childs()
 
@@ -180,7 +169,7 @@ class Quadtree:
         self.sourth_west = None
 
     def childs(self):
-        """Yield own childs"""
+        """Yield own childs."""
         if not self.is_divided():
             return "no childs."
         yield self.north_west
@@ -189,6 +178,7 @@ class Quadtree:
         yield self.sourth_west
 
     def depth(self) -> int:
+        """Return depth of tree."""
         if not self.is_divided():
             return 1
         return 1 + max(child.depth() for child in self.childs())
@@ -202,20 +192,3 @@ class Quadtree:
         yield self
         for child in self.childs():
             yield from child
-
-
-if __name__ == '__main__':
-    tree = Quadtree(Area((0, 0), (15, 15), (0, 0, 0)))
-    tree.insert(Pixel(0, 0, (255, 255, 255)))
-    tree.insert(Pixel(0, 7, (255, 255, 255)))
-    tree.insert(Pixel(8, 8, (255, 255, 255)))
-    print('-' * 10)
-    print(f'Tree depth: {tree.depth()}')
-    print('-' * 10)
-    tree.collapse()
-    tree_depth = tree.depth()
-    print(f'Tree depth: {tree_depth}')
-    print('-' * 10)
-    for i in tree:
-        print(f"{' ' * (tree_depth - i.depth())}I\'m {i}, my depth: {i.depth()}")
-    print('-' * 10)
