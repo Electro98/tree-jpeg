@@ -1,12 +1,12 @@
 """Module for Quadtree and supports classes."""
-from dataclasses import dataclass
+from attrs import define
 from typing import Optional, Union
 
 Color = tuple[int, int, int]
 PointData = Union["Point", tuple[int, int]]
 
 
-@dataclass(slots=True)
+@define
 class Point:
     """Class representation of point in xy coordinates."""
 
@@ -18,7 +18,7 @@ class Point:
         return iter((self.x, self.y))
 
 
-@dataclass(slots=True)
+@define
 class Pixel(Point):
     """Class representation of point with color."""
 
@@ -57,7 +57,7 @@ class ColorArea:
         return f'Area: {self.start}, {self.end}, {self.color}'
 
 
-@dataclass(slots=True)
+@define
 class Quadtree:
     """Simple Quadtree."""
 
@@ -67,7 +67,7 @@ class Quadtree:
     sourth_east: Optional["Quadtree"] = None
     sourth_west: Optional["Quadtree"] = None
 
-    def __post_init__(self) -> None:
+    def __attrs_post_init__(self) -> None:
         """Trasform point from init into ColorArea."""
         if isinstance(self.area, ColorArea):
             return

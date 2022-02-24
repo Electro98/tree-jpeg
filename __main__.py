@@ -28,7 +28,7 @@ def main():
         draw(tree, False)
     else:
         image = compress_image(tree, 10, args["border"])
-        image.save("practice_21/image.png", "PNG")
+        image.save("tree-jpeg/image.png", "PNG")
 
 
 if __name__ == '__main__':

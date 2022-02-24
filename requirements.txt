@@ -1,0 +1,13 @@
+
+# For image processing
+pillow
+numpy
+
+# Cool class creation
+attrs
+
+# For python speed up
+numba
+
+# For interactive mode
+pygame
