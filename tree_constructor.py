@@ -1,12 +1,12 @@
 """Cool."""
+from math import log2, sqrt
+
 import numpy as np
 from numba import njit
 from PIL import Image
 
-from math import log2, sqrt
-
+from .quadtree import Color, Quadtree
 from .timer import timeit
-from .quadtree import Quadtree, Color
 
 
 def close_size(cord_x: int, cord_y: int):

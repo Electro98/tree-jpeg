@@ -1,6 +1,7 @@
 """Module for Quadtree and supports classes."""
-from attrs import define
 from typing import Optional, Union
+
+from attrs import define
 
 Color = tuple[int, int, int]
 PointData = Union["Point", tuple[int, int]]
@@ -146,7 +147,6 @@ class Quadtree:
             return
         if max(child.is_divided() for child in self.childs()):
             if not unite_childs:
-                print('nope.')
                 return
             self.north_west.unite(unite_childs)
             self.north_east.unite(unite_childs)
